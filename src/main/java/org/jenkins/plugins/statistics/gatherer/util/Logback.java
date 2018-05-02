@@ -19,4 +19,12 @@ public interface Logback {
      * @param msg message to send to LOGBack
      */
     void log(String msg);
+
+    /**
+     * Check for LOGBack configuration and reload when changed.
+     *
+     * @return true if the configuration has been reloaded
+     * @throws Exception if the configuration refresh failed
+     */
+    public boolean refresh() throws Exception;
 }
