@@ -1,10 +1,15 @@
-[![Build Status](https://travis-ci.org/maximecharron/statistics-gatherer-plugin.svg?branch=master)](https://travis-ci.org/maximecharron/statistics-gatherer-plugin)   [![Coverage Status](https://coveralls.io/repos/github/maximecharron/statistics-gatherer-plugin/badge.svg?branch=master)](https://coveralls.io/github/maximecharron/statistics-gatherer-plugin?branch=master)
+[![Build Status](https://travis-ci.org/jenkinsci/statistics-gatherer-plugin.svg?branch=master)](https://travis-ci.org/jenkinsci/statistics-gatherer-plugin)   [![Coverage Status](https://coveralls.io/repos/github/jenkinsci/statistics-gatherer-plugin/badge.svg?branch=master)](https://coveralls.io/github/jenkinsci/statistics-gatherer-plugin?branch=master)
 
 
 Jenkins Statistics gatherer Plugin
 ======================================
 
 This plugin gather information on specific events on jenkins and sends them to an external API. That way, you can get the statistics that matters for your needs.
+
+Issues
+==========
+
+If you have an issue with this plugin, please open a ticket on [issues.jenkins-ci.org](https://issues.jenkins-ci.org/issues/?jql=component%20%3D%20statistics-gatherer-plugin) using `statistics-gatherer-plugin` component.
 
 Documentation
 ==============
@@ -299,6 +304,10 @@ Plugin releases
 ---------------
 
 	mvn release:prepare release:perform -Dusername=user -Dpassword=******
+
+Changelog
+--------------
+Please refer to the CHANGELOG.md file. 
 
 
 License

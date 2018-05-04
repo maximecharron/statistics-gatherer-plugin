@@ -1,5 +1,6 @@
 package org.jenkins.plugins.statistics.gatherer.util;
 
+import com.google.common.base.Strings;
 import hudson.EnvVars;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
@@ -9,6 +10,7 @@ import jenkins.model.Jenkins;
 import org.jenkins.plugins.statistics.gatherer.StatisticsConfiguration;
 
 import java.util.List;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 
@@ -23,7 +25,7 @@ public class PropertyLoader {
 
     public static final synchronized PropertyLoader getInstance() {
         if (instance == null) {
-            instance = new PropertyLoader();
+            setInstance(new PropertyLoader());
         }
         return instance;
     }
@@ -34,7 +36,11 @@ public class PropertyLoader {
     }
 
     protected String getResourceBundleProperty(String keyProperty) {
-        return resourceBundle.getString(keyProperty);
+        try {
+            return resourceBundle.getString(keyProperty);
+        } catch (MissingResourceException e) {
+            return null;
+        }
     }
 
     public String getProperty(
@@ -54,16 +60,29 @@ public class PropertyLoader {
         for (EnvironmentVariablesNodeProperty environmentVariablesNodeProperty : properties) {
             environmentVariables.putAll(environmentVariablesNodeProperty.getEnvVars());
         }
-        final String value = environmentVariables.get(key);
-        if (value == null || value.isEmpty()) {
-            return getResourceBundleProperty(key);
+        String value = environmentVariables.get(key);
+        if (!Strings.isNullOrEmpty(value)) {
+            return value;
         }
-        return value;
+        value = environmentVariables.get(key.toLowerCase());
+        if (!Strings.isNullOrEmpty(value)) {
+            return value;
+        }
+
+        value = getResourceBundleProperty(key);
+        if (!Strings.isNullOrEmpty(value)) {
+            return value;
+        }
+        return getResourceBundleProperty(key.toLowerCase());
     }
 
     public static String getEnvironmentProperty(
             final String key) {
         return getInstance().getProperty(key);
+    }
+
+    public static boolean isTrue(String value) {
+        return value != null ? value.toLowerCase().equals("true") : false;
     }
 
     public static String getQueueEndPoint() {
@@ -111,13 +130,49 @@ public class PropertyLoader {
         return endPoint == null ? "" : endPoint;
     }
 
+    public static String getAwsRegion() {
+        String awsRegion = StatisticsConfiguration.get().getAwsRegion();
+        if (awsRegion != null && !awsRegion.isEmpty()) {
+            return awsRegion;
+        }
+        awsRegion = getEnvironmentProperty("statistics.endpoint.awsRegion");
+        return awsRegion == null ? "" : awsRegion;
+    }
+
+    public static String getAwsAccessKey() {
+        String awsAccessKey = StatisticsConfiguration.get().getAwsAccessKey();
+        if (awsAccessKey != null && !awsAccessKey.isEmpty()) {
+            return awsAccessKey;
+        }
+        awsAccessKey = getEnvironmentProperty("statistics.endpoint.awsAccessKey");
+        return awsAccessKey == null ? "" : awsAccessKey;
+    }
+
+    public static String getAwsSecretKey() {
+        String awsSecretKey = StatisticsConfiguration.get().getAwsSecretKey();
+        if (awsSecretKey != null && !awsSecretKey.isEmpty()) {
+            return awsSecretKey;
+        }
+        awsSecretKey = getEnvironmentProperty("statistics.endpoint.awsSecretKey");
+        return awsSecretKey == null ? "" : awsSecretKey;
+    }
+
+    public static String getSnsTopicArn() {
+        String snsTopicArn = StatisticsConfiguration.get().getSnsTopicArn();
+        if (snsTopicArn != null && !snsTopicArn.isEmpty()) {
+            return snsTopicArn;
+        }
+        snsTopicArn = getEnvironmentProperty("statistics.endpoint.snsTopicArn");
+        return snsTopicArn == null ? "" : snsTopicArn;
+    }
+
     public static Boolean getQueueInfo() {
         Boolean queueInfo = StatisticsConfiguration.get().getQueueInfo();
         if (queueInfo != null) {
             return queueInfo;
         }
         String queueInfoEnv = getEnvironmentProperty("statistics.endpoint.queueInfo");
-        return "true".equals(queueInfoEnv);
+        return isTrue(queueInfoEnv);
     }
 
     public static Boolean getBuildInfo() {
@@ -125,8 +180,7 @@ public class PropertyLoader {
         if (buildInfo != null) {
             return buildInfo;
         }
-        String buildInfoEnv = getEnvironmentProperty("statistics.endpoint.buildInfo");
-        return "true".equals(buildInfoEnv);
+        return isTrue(getEnvironmentProperty("statistics.endpoint.buildInfo"));
     }
 
     public static Boolean getProjectInfo() {
@@ -134,8 +188,7 @@ public class PropertyLoader {
         if (projectInfo != null) {
             return projectInfo;
         }
-        String projectInfoEnv = getEnvironmentProperty("statistics.endpoint.projectInfo");
-        return "true".equals(projectInfoEnv);
+        return isTrue(getEnvironmentProperty("statistics.endpoint.projectInfo"));
     }
 
     public static Boolean getBuildStepInfo() {
@@ -143,8 +196,7 @@ public class PropertyLoader {
         if (buildStepInfo != null) {
             return buildStepInfo;
         }
-        String buildStepInfoEnv = getEnvironmentProperty("statistics.endpoint.buildStepInfo");
-        return "true".equals(buildStepInfoEnv);
+        return isTrue(getEnvironmentProperty("statistics.endpoint.buildStepInfo"));
     }
 
     public static Boolean getScmCheckoutInfo() {
@@ -152,7 +204,38 @@ public class PropertyLoader {
         if (scmCheckoutInfo != null) {
             return scmCheckoutInfo;
         }
-        String scmCheckoutInfoEnv = getEnvironmentProperty("statistics.endpoint.scmCheckoutInfo");
-        return "true".equals(scmCheckoutInfoEnv);
+        return isTrue(getEnvironmentProperty("statistics.endpoint.scmCheckoutInfo"));
+    }
+
+    public static Boolean getShouldSendApiHttpRequests() {
+        Boolean shouldSendApiHttpRequests = StatisticsConfiguration.get().getShouldSendApiHttpRequests();
+        if (shouldSendApiHttpRequests != null) {
+            return shouldSendApiHttpRequests;
+        }
+        return isTrue(getEnvironmentProperty("statistics.endpoint.shouldSendApiHttpRequests"));
+    }
+
+    public static Boolean getShouldPublishToAwsSnsQueue() {
+        Boolean shouldPublishToAwsSnsQueue = StatisticsConfiguration.get().getShouldPublishToAwsSnsQueue();
+        if (shouldPublishToAwsSnsQueue != null) {
+            return shouldPublishToAwsSnsQueue;
+        }
+        return isTrue(getEnvironmentProperty("statistics.endpoint.shouldPublishToAwsSnsQueue"));
+    }
+
+    public static boolean getShouldSendToLogback() {
+        Boolean shouldSendToLogback = StatisticsConfiguration.get().getShouldSendToLogback();
+        if (shouldSendToLogback != null) {
+            return shouldSendToLogback;
+        }
+        return isTrue(getEnvironmentProperty("statistics.endpoint.shouldSendToLogback"));
+    }
+
+    public static String getLogbackConfigXmlUrl() {
+        String logbackConfigXmlUrlString = StatisticsConfiguration.get().getLogbackConfigXmlUrl();
+        if (logbackConfigXmlUrlString == null) {
+            logbackConfigXmlUrlString = getEnvironmentProperty("statistics.endpoint.logbackConfigXmlUrl");
+        }
+        return logbackConfigXmlUrlString;
     }
 }

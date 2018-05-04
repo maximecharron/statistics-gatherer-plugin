@@ -6,8 +6,10 @@ import hudson.model.BuildListener;
 import hudson.model.BuildStepListener;
 import hudson.tasks.BuildStep;
 import org.jenkins.plugins.statistics.gatherer.model.step.BuildStepStats;
+import org.jenkins.plugins.statistics.gatherer.util.LogbackUtil;
 import org.jenkins.plugins.statistics.gatherer.util.PropertyLoader;
 import org.jenkins.plugins.statistics.gatherer.util.RestClientUtil;
+import org.jenkins.plugins.statistics.gatherer.util.SnsClientUtil;
 
 import java.util.Date;
 
@@ -27,6 +29,8 @@ public class BuildStepStatsListener extends BuildStepListener {
             buildStepStats.setEndTime(new Date());
             buildStepStats.setStartTime(new Date(0));
             RestClientUtil.postToService(getRestUrl(), buildStepStats);
+            SnsClientUtil.publishToSns(buildStepStats);
+            LogbackUtil.info(buildStepStats);
         }
     }
 
@@ -40,6 +44,8 @@ public class BuildStepStatsListener extends BuildStepListener {
             buildStepStats.setStartTime(new Date());
             buildStepStats.setEndTime(new Date(0));
             RestClientUtil.postToService(getRestUrl(), buildStepStats);
+            SnsClientUtil.publishToSns(buildStepStats);
+            LogbackUtil.info(buildStepStats);
         }
     }
 
