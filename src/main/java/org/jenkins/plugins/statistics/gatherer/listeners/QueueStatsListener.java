@@ -6,13 +6,11 @@ import hudson.model.Queue.*;
 import hudson.model.queue.QueueListener;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
+import jenkins.YesNoMaybe;
 import jenkins.model.Jenkins;
 import org.jenkins.plugins.statistics.gatherer.model.queue.QueueCause;
 import org.jenkins.plugins.statistics.gatherer.model.queue.QueueStats;
-import org.jenkins.plugins.statistics.gatherer.util.Constants;
-import org.jenkins.plugins.statistics.gatherer.util.JenkinsCauses;
-import org.jenkins.plugins.statistics.gatherer.util.PropertyLoader;
-import org.jenkins.plugins.statistics.gatherer.util.RestClientUtil;
+import org.jenkins.plugins.statistics.gatherer.util.*;
 
 import java.util.Date;
 import java.util.List;
@@ -22,7 +20,7 @@ import java.util.logging.Logger;
 /**
  * Created by hthakkallapally on 3/13/2015.
  */
-@Extension
+@Extension(dynamicLoadable = YesNoMaybe.YES)
 public class QueueStatsListener extends QueueListener {
     private static final Logger LOGGER = Logger.getLogger(
             QueueStatsListener.class.getName());
@@ -44,6 +42,7 @@ public class QueueStatsListener extends QueueListener {
                     addEntryQueueCause("waiting", waitingItem, queue);
                 }
                 RestClientUtil.postToService(getRestUrl(), queue);
+                LogbackUtil.info(queue);
             } catch (Exception e) {
                 logExceptionWaiting(waitingItem, e);
             }
@@ -75,6 +74,8 @@ public class QueueStatsListener extends QueueListener {
                     addExitQueueCause("waiting", waitingItem, queue);
                 }
                 RestClientUtil.postToService(getRestUrl(), queue);
+                SnsClientUtil.publishToSns(queue);
+                LogbackUtil.info(queue);
             } catch (Exception e) {
                 logExceptionWaiting(waitingItem, e);
             }
@@ -105,6 +106,7 @@ public class QueueStatsListener extends QueueListener {
                     addEntryQueueCause("blocked", blockedItem, queue);
                 }
                 RestClientUtil.postToService(getRestUrl(), queue);
+                SnsClientUtil.publishToSns(queue);
             } catch (Exception e) {
                 logExceptionBlocked(blockedItem, e);
             }
@@ -127,6 +129,8 @@ public class QueueStatsListener extends QueueListener {
                 }
 
                 RestClientUtil.postToService(getRestUrl(), queue);
+                SnsClientUtil.publishToSns(queue);
+                LogbackUtil.info(queue);
             } catch (Exception e) {
                 logExceptionBlocked(blockedItem, e);
             }
@@ -142,6 +146,8 @@ public class QueueStatsListener extends QueueListener {
                     addEntryQueueCause("buildable", buildableItem, queue);
                 }
                 RestClientUtil.postToService(getRestUrl(), queue);
+                SnsClientUtil.publishToSns(queue);
+                LogbackUtil.info(queue);
             } catch (Exception e) {
                 logExceptionLeave(buildableItem, e);
             }
@@ -157,6 +163,8 @@ public class QueueStatsListener extends QueueListener {
                     addExitQueueCause("buildable", buildableItem, queue);
                 }
                 RestClientUtil.postToService(getRestUrl(), queue);
+                SnsClientUtil.publishToSns(queue);
+                LogbackUtil.info(queue);
             } catch (Exception e) {
                 logExceptionLeave(buildableItem, e);
             }
@@ -210,8 +218,12 @@ public class QueueStatsListener extends QueueListener {
                 queue.setExitTime(new Date());
                 queue.setStatus(Constants.LEFT);
                 queue.setDuration(System.currentTimeMillis() - leftItem.getInQueueSince());
-                queue.setContextId(leftItem.outcome.hashCode());
+                if (leftItem.outcome != null) {
+                    queue.setContextId(leftItem.outcome.hashCode());
+                }
                 RestClientUtil.postToService(getRestUrl(), queue);
+                SnsClientUtil.publishToSns(queue);
+                LogbackUtil.info(queue);
             } catch (Exception e) {
                 logExceptionLeft(leftItem, e);
             }

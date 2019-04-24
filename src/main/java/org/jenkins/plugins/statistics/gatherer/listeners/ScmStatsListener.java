@@ -8,9 +8,12 @@ import hudson.model.TaskListener;
 import hudson.model.listeners.SCMListener;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
+import jenkins.YesNoMaybe;
 import org.jenkins.plugins.statistics.gatherer.model.scm.ScmCheckoutInfo;
+import org.jenkins.plugins.statistics.gatherer.util.LogbackUtil;
 import org.jenkins.plugins.statistics.gatherer.util.PropertyLoader;
 import org.jenkins.plugins.statistics.gatherer.util.RestClientUtil;
+import org.jenkins.plugins.statistics.gatherer.util.SnsClientUtil;
 
 import java.io.File;
 import java.util.Calendar;
@@ -19,7 +22,7 @@ import java.util.Date;
 /**
  * Created by mcharron on 2016-07-15.
  */
-@Extension
+@Extension(dynamicLoadable = YesNoMaybe.YES)
 public class ScmStatsListener extends SCMListener{
 
     @Override
@@ -33,6 +36,8 @@ public class ScmStatsListener extends SCMListener{
             scmCheckoutInfo.setStartTime(new Date(0));
             scmCheckoutInfo.setEndTime(Calendar.getInstance().getTime());
             RestClientUtil.postToService(getUrl(), scmCheckoutInfo);
+            SnsClientUtil.publishToSns(scmCheckoutInfo);
+            LogbackUtil.info(scmCheckoutInfo);
         }
     }
 

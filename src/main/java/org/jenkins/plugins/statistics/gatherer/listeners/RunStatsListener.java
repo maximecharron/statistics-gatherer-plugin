@@ -8,6 +8,7 @@ import hudson.model.*;
 import hudson.model.listeners.RunListener;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
+import jenkins.YesNoMaybe;
 import jenkins.model.Jenkins;
 import org.jenkins.plugins.statistics.gatherer.model.build.BuildStats;
 import org.jenkins.plugins.statistics.gatherer.model.build.SCMInfo;
@@ -27,7 +28,7 @@ import java.util.logging.Logger;
  *
  * @author hthakkallapally
  */
-@Extension
+@Extension(dynamicLoadable = YesNoMaybe.YES)
 public class RunStatsListener extends RunListener<Run<?, ?>> {
 
     private static final Logger LOGGER = Logger.getLogger(RunStatsListener.class.getName());
@@ -45,9 +46,6 @@ public class RunStatsListener extends RunListener<Run<?, ?>> {
     public void onStarted(Run<?, ?> run, TaskListener listener) {
         if (PropertyLoader.getBuildInfo()) {
             try {
-                if (!(run instanceof AbstractBuild)) {
-                    return;
-                }
                 final String buildResult = run.getResult() == null ?
                         "INPROGRESS" : run.getResult().toString();
                 BuildStats build = new BuildStats();
@@ -67,6 +65,8 @@ public class RunStatsListener extends RunListener<Run<?, ?>> {
                 addParameters(run, build);
                 addSlaveInfo(run, build, listener);
                 RestClientUtil.postToService(getRestUrl(), build);
+                SnsClientUtil.publishToSns(build);
+                LogbackUtil.info(build);
                 LOGGER.log(Level.INFO, "Started build and its status is : " + buildResult +
                         " and start time is : " + run.getTimestamp().getTime());
             } catch (Exception e) {
@@ -213,10 +213,6 @@ public class RunStatsListener extends RunListener<Run<?, ?>> {
     public void onFinalized(final Run<?, ?> run) {
         if (PropertyLoader.getBuildInfo()) {
             try {
-                if (!(run instanceof AbstractBuild)) {
-                    return;
-                }
-
                 final String buildResult = run.getResult() == null ?
                         Constants.UNKNOWN : run.getResult().toString();
                 BuildStats build = new BuildStats();
@@ -228,8 +224,11 @@ public class RunStatsListener extends RunListener<Run<?, ?>> {
                 build.setBuildUrl(run.getUrl());
                 build.setDuration(run.getDuration());
                 build.setEndTime(Calendar.getInstance().getTime());
+                addSCMInfo(run, SoutTaskListener.INSTANCE, build);
                 addBuildFailureCauses(build);
                 RestClientUtil.postToService(getRestUrl(), build);
+                SnsClientUtil.publishToSns(build);
+                LogbackUtil.info(build);
                 LOGGER.log(Level.INFO, run.getParent().getName() + " build is completed " +
                         "its status is : " + buildResult +
                         " at time : " + new Date());
@@ -275,6 +274,8 @@ public class RunStatsListener extends RunListener<Run<?, ?>> {
             scmCheckoutInfo.setBuildUrl(build.getUrl());
             scmCheckoutInfo.setEndTime(new Date(0));
             RestClientUtil.postToService(getScmCheckoutUrl(), scmCheckoutInfo);
+            SnsClientUtil.publishToSns(scmCheckoutInfo);
+            LogbackUtil.info(scmCheckoutInfo);
         }
         return super.setUpEnvironment(build, launcher, listener);
 
